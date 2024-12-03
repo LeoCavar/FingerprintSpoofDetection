@@ -80,7 +80,7 @@ def main():
         main_frame, text="Train and Evaluate Model", font=FONT_BUTTON, bg="#28a745", command=handle_train
     ).pack(pady=10, ipadx=10, ipady=5)
 
-    create_label(main_frame, text="© 2024 Fingerprint Spoof Detection System", font=FONT_FOOTER, fg=TEXT_SECONDARY).pack(side="bottom", pady=10)
+    create_label(main_frame, text="FOI Biometric systems 2024", font=FONT_FOOTER, fg=TEXT_SECONDARY).pack(side="bottom", pady=10)
 
     root.mainloop()
 
