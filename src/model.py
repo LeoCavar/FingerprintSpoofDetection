@@ -6,37 +6,46 @@ import numpy as np
 import os
 import cv2
 
-def load_dataset(base_dir):
-    X, y = [], []
-    for label, folder in enumerate(['real', 'fake_Altered-Hard']):
-        folder_path = os.path.join(base_dir, folder)
-        for image_name in os.listdir(folder_path):
-            image_path = os.path.join(folder_path, image_name)
+def load_dataset(base_directory):
+    feature_vectors = []
+    labels = []
+    for label, folder_name in enumerate(['real', 'fake_Altered-Hard']):
+        folder_path = os.path.join(base_directory, folder_name)
+        for image_filename in os.listdir(folder_path):
+            image_path = os.path.join(folder_path, image_filename)
             try:
                 image = load_img(image_path, target_size=(128, 128), color_mode='grayscale')
                 image_array = img_to_array(image).astype(np.uint8).squeeze()
                 enhanced_image = enhance_image(image_array)  
-                X.append(enhanced_image.flatten() / 255.0)  
-                y.append(label)
+                feature_vectors.append(enhanced_image.flatten() / 255.0) 
+                labels.append(label)
             except Exception as e:
                 print(f"Error processing image {image_path}: {e}")
-    return np.array(X), np.array(y)
+    return np.array(feature_vectors), np.array(labels)
 
-def enhance_image(image):
+def enhance_image(grayscale_image):
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    return clahe.apply(image)
+    return clahe.apply(grayscale_image)
 
-def train_and_evaluate(train_dir, test_dir):
+def train_and_evaluate(training_directory, testing_directory):
     print("Loading training data...")
-    X_train, y_train = load_dataset(train_dir)
+    training_features, training_labels = load_dataset(training_directory)
     print("Balancing training data with SMOTE...")
     smote = SMOTE(random_state=42)
-    X_train_balanced, y_train_balanced = smote.fit_resample(X_train, y_train)
+    balanced_features, balanced_labels = smote.fit_resample(training_features, training_labels)
+    
     print("Loading test data...")
-    X_test, y_test = load_dataset(test_dir)
+    testing_features, testing_labels = load_dataset(testing_directory)
+    
     print("Training Random Forest model...")
-    model = RandomForestClassifier(n_estimators=200, max_depth=20, random_state=42, class_weight={0: 3, 1: 1})
-    model.fit(X_train_balanced, y_train_balanced)
+    random_forest_model = RandomForestClassifier(
+        n_estimators=200,       
+        max_depth=20,           
+        random_state=42,        
+        class_weight={0: 3, 1: 1}  
+    )
+    random_forest_model.fit(balanced_features, balanced_labels)
+    
     print("Evaluating the model...")
-    y_pred = model.predict(X_test)
-    return classification_report(y_test, y_pred, target_names=["Real", "Fake"])
+    predictions = random_forest_model.predict(testing_features)
+    return classification_report(testing_labels, predictions, target_names=["Real", "Fake"])
